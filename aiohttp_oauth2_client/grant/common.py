@@ -21,11 +21,15 @@ class OAuth2Grant:
     """
 
     def __init__(
-        self, token_url: Union[str, URL], token: Optional[dict] = None, **kwargs
+        self,
+        token_url: Union[str, URL],
+        token: Optional[dict] = None,
+        **kwargs,
     ):
         """
         :param token_url: OAuth 2.0 Token URL
         :param token: OAuth 2.0 Token
+        :param session: optional aiohttp ClientSession
         :param kwargs: extra arguments used in token request
         """
         self.token_url = URL(token_url)
@@ -84,7 +88,7 @@ class OAuth2Grant:
         """
         ...
 
-    async def refresh_token(self):
+    async def refresh_token(self, headers: Optional[dict] = None):
         """
         Obtain a new access token using the refresh token grant and store it for subsequent use.
         """
@@ -92,9 +96,13 @@ class OAuth2Grant:
             refresh_token=self.token.refresh_token,
             **self.kwargs,
         )
-        self.token = await self.execute_token_request(access_token_request)
+        self.token = await self.execute_token_request(
+            access_token_request, headers=headers
+        )
 
-    async def execute_token_request(self, data: AccessTokenRequest) -> Token:
+    async def execute_token_request(
+        self, data: AccessTokenRequest, headers: Optional[dict] = None
+    ) -> Token:
         """
         Execute a token request with the provided data.
 
@@ -106,6 +114,7 @@ class OAuth2Grant:
         async with self.session.post(
             url=self.token_url,
             data=data.model_dump(exclude_none=True),
+            headers=headers,
         ) as response:
             if not response.ok:
                 try:
